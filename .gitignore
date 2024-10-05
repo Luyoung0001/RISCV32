@@ -1,0 +1,8 @@
+# 忽略目标文件夹
+/target/**
+/.metals/**
+/.scala-build/**
+/project/**
+
+# 忽略 .scalafmt.conf 文件
+.scalafmt.conf
