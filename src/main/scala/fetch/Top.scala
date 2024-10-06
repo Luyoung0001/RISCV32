@@ -14,6 +14,7 @@ class Top extends Module {
 
     // core 的 imme 和 memory 的 imme 应该互连
     core.io.imem <> memory.io.imem
+    core.io.dmem <> memory.io.dmem 
     io.exit := core.io.exit
 
 }
