@@ -37,6 +37,9 @@ class Core extends Module {
     val rs2_data = Mux(rs2_addr === 0.U(WORD_LEN.W), 0.U(WORD_LEN.W), regfile(rs2_addr))
 
 
+
+
+
     // ID
     val imm_i = inst(31,20)
     val imm_i_sext = Cat(Fill(20, imm_i(11)), imm_i)
@@ -44,39 +47,66 @@ class Core extends Module {
     val imm_s = Cat(inst(31,25), inst(11,7))
     val imm_s_sext = Cat(Fill(20, imm_s(11)), imm_s)
 
+
+
+
+    val csignals = ListLookup(inst, List(ALU_X, OP1_RS1, OP2_RS2, MEN_X, REN_X, WB_X),
+        Array(
+            LW ->List(ALU_ADD, OP1_RS1, OP2_IMI, MEN_X, REN_S, WB_MEM),
+            SW ->List(ALU_ADD, OP1_RS1, OP2_IMS, MEN_S, REN_X, WB_X),
+
+            ADD ->List(ALU_ADD, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            ADDI ->List(ALU_ADD, OP1_RS1, OP2_IMI, MEN_X, REN_S, WB_ALU),
+            SUB ->List(ALU_SUB, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+
+            AND ->List(ALU_AND, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            OR ->List(ALU_OR, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            XOR ->List(ALU_XOR, OP1_RS1, OP2_RS2, MEN_X, REN_S, WB_ALU),
+            ANDI ->List(ALU_AND, OP1_RS1, OP2_IMI, MEN_X, REN_S, WB_ALU),
+            ORI ->List(ALU_OR, OP1_RS1, OP2_IMI, MEN_X, REN_S, WB_ALU),
+            XORI ->List(ALU_XOR, OP1_RS1, OP2_IMI, MEN_X, REN_S, WB_ALU)
+        )
+    )
+    // 操作类型、第一操作数、第二操作数、是否写内存（数据类型）、是否写寄存器、回写数据类型
+    val exe_func :: op1_sel :: op2_sel :: mem_wen :: rf_wen :: wb_sel :: Nil = csignals
+
+
+
+    val op1_data = MuxCase(0.U(WORD_LEN.W), Seq(
+        (op1_sel === OP1_RS1) -> rs1_data
+    ))
+
+    val op2_data = MuxCase(0.U(WORD_LEN.W), Seq(
+        (op2_sel === OP2_RS2) -> rs2_addr,
+        (op2_sel === OP2_IMI) -> imm_i_sext,
+        (op2_sel === OP2_IMS) -> imm_s_sext
+
+    ))
+
+
     // EX
     val alu_out = MuxCase(0.U(WORD_LEN.W), Seq(
-        (inst === LW || inst === ADDI) -> (rs1_data + imm_i_sext),
-        (inst === SW) -> (rs1_data + imm_s_sext),
-
-        (inst === ADD) -> (rs1_data + rs2_data),
-        (inst === SUB) -> (rs1_data + rs2_data),
-
-        (inst === AND) -> (rs1_data & rs2_data),
-        (inst === OR) -> (rs1_data | rs2_data),
-        (inst === XOR) -> (rs1_data ^ rs2_data),
-        (inst === ANDI) -> (rs1_data & imm_i_sext),
-        (inst === ORI) -> (rs1_data | imm_i_sext),
-        (inst === XORI) -> (rs1_data ^ imm_i_sext)
-
+        (exe_func === ALU_ADD) -> (op1_data + op2_data),
+        (exe_func === ALU_SUB) -> (op1_data - op2_data),
+        (exe_func === ALU_AND) -> (op1_data & op2_data),
+        (exe_func === ALU_OR) -> (op1_data | op2_data),
+        (exe_func === ALU_XOR) -> (op1_data ^ op2_data)
     ))
 
     // MEM
     // 无需仅仅在 LW 的时候才将 alu_out 连接到 数据地址线，这里一直连接
     io.dmem.addr := alu_out
-    io.dmem.wen := (inst === SW)
+
+    io.dmem.wen := mem_wen
     io.dmem.wdata := rs2_data
 
 
-    // 默认将 alu_out 视为回写数据，但是当是 LW 指令的时候，回写数据为内存中读出来的数据 io.dmem.radta
     // WB
     val wb_data = MuxCase(alu_out, Seq(
-        (inst === LW) -> io.dmem.radta
+        (wb_sel === WB_MEM) -> io.dmem.rdata
     ))
 
-    when(inst === LW || inst === ADD || inst === SUB || inst === ADDI ||
-         inst === OR || inst === XOR || inst === ANDI || inst === ORI ||
-         inst === XORI || inst === AND) {
+    when(rf_wen === REN_S) {
         regfile(wb_addr) := wb_data
     }
 
