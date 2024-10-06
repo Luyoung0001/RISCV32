@@ -46,20 +46,37 @@ class Core extends Module {
 
     // EX
     val alu_out = MuxCase(0.U(WORD_LEN.W), Seq(
-        (inst === LW) -> (rs1_data + imm_i_sext), // 访问存储器的地址
-        (inst === SW) -> (rs1_data + imm_s_sext)
+        (inst === LW || inst === ADDI) -> (rs1_data + imm_i_sext),
+        (inst === SW) -> (rs1_data + imm_s_sext),
+
+        (inst === ADD) -> (rs1_data + rs2_data),
+        (inst === SUB) -> (rs1_data + rs2_data),
+
+        (inst === AND) -> (rs1_data & rs2_data),
+        (inst === OR) -> (rs1_data | rs2_data),
+        (inst === XOR) -> (rs1_data ^ rs2_data),
+        (inst === ANDI) -> (rs1_data & imm_i_sext),
+        (inst === ORI) -> (rs1_data | imm_i_sext),
+        (inst === XORI) -> (rs1_data ^ imm_i_sext)
+
     ))
 
     // MEM
-    // 无需仅仅在 LW 的时候才将 alu_out 连接到 数据地址线
+    // 无需仅仅在 LW 的时候才将 alu_out 连接到 数据地址线，这里一直连接
     io.dmem.addr := alu_out
-
     io.dmem.wen := (inst === SW)
     io.dmem.wdata := rs2_data
 
+
+    // 默认将 alu_out 视为回写数据，但是当是 LW 指令的时候，回写数据为内存中读出来的数据 io.dmem.radta
     // WB
-    val wb_data = io.dmem.rdata
-    when(inst === LW) {
+    val wb_data = MuxCase(alu_out, Seq(
+        (inst === LW) -> io.dmem.radta
+    ))
+
+    when(inst === LW || inst === ADD || inst === SUB || inst === ADDI ||
+         inst === OR || inst === XOR || inst === ANDI || inst === ORI ||
+         inst === XORI || inst === AND) {
         regfile(wb_addr) := wb_data
     }
 
