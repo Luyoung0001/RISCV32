@@ -41,18 +41,26 @@ class Core extends Module {
     val imm_i = inst(31,20)
     val imm_i_sext = Cat(Fill(20, imm_i(11)), imm_i)
 
+    val imm_s = Cat(inst(31,25), inst(11,7))
+    val imm_s_sext = Cat(Fill(20, imm_s(11)), imm_s)
+
     // EX
     val alu_out = MuxCase(0.U(WORD_LEN.W), Seq(
-        (inst === LW) -> (rs1_data + imm_i_sext) // 访问存储器的地址
+        (inst === LW) -> (rs1_data + imm_i_sext), // 访问存储器的地址
+        (inst === SW) -> (rs1_data + imm_s_sext)
     ))
 
-    // MEM: 无需仅仅在 LW 的时候才将 alu_out 连接到 数据地址线
+    // MEM
+    // 无需仅仅在 LW 的时候才将 alu_out 连接到 数据地址线
     io.dmem.addr := alu_out
+
+    io.dmem.wen := (inst === SW)
+    io.dmem.wdata := rs2_data
 
     // WB
     val wb_data = io.dmem.rdata
     when(inst === LW) {
-        regfile(wb_data) := wb_data
+        regfile(wb_addr) := wb_data
     }
 
     // 测试
@@ -64,6 +72,9 @@ class Core extends Module {
 
     printf(p"wb_addr: 0x${Hexadecimal(wb_addr)}--->wb_data: 0x${Hexadecimal(wb_data)}\n")
     printf(p"dmem.addr: 0x${Hexadecimal(io.dmem.addr)}\n")
+
+    printf(p"dmem.wen: ${io.dmem.wen}\n")
+    printf(p"dmem.wdata: 0x${Hexadecimal(io.dmem.wdata)}\n")
 
 
     // 一次测试分割线
