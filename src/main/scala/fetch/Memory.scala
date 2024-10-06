@@ -22,6 +22,7 @@ class Memory extends Module {
     loadMemoryFromFile(mem, "src/hex/fetch.hex")
 
     // 连接 4 * 8 = 32 bit 数据，输送到 inst
+    // 高地址位于高字节，小端字节序
     io.imem.inst := Cat(
         mem(io.imem.addr + 3.U(WORD_LEN.W)),
         mem(io.imem.addr + 2.U(WORD_LEN.W)),
