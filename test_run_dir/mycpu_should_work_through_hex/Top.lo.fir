@@ -11,18 +11,45 @@ circuit Top :
       depth => 32
       read-latency => 0
       write-latency => 1
+      reader => rs1_data_MPORT
+      reader => rs2_data_MPORT
       read-under-write => undefined
     reg pc_reg : UInt<32>, clock with :
       reset => (UInt<1>("h0"), pc_reg) @[Core.scala 18:25]
     node _pc_reg_T = add(pc_reg, UInt<32>("h4")) @[Core.scala 19:22]
     node _pc_reg_T_1 = tail(_pc_reg_T, 1) @[Core.scala 19:22]
     node _io_exit_T = eq(io_imem_inst, UInt<32>("h34333231")) @[Core.scala 26:22]
-    node _T = asUInt(reset) @[Core.scala 28:11]
-    node _T_1 = eq(_T, UInt<1>("h0")) @[Core.scala 28:11]
+    node rs1_addr = bits(io_imem_inst, 19, 15) @[Core.scala 29:24]
+    node rs2_addr = bits(io_imem_inst, 24, 20) @[Core.scala 30:24]
+    node wb_addr = bits(io_imem_inst, 11, 7) @[Core.scala 31:24]
+    node _rs1_data_T = eq(rs1_addr, UInt<32>("h0")) @[Core.scala 34:33]
+    node rs1_data = mux(_rs1_data_T, UInt<32>("h0"), regfile.rs1_data_MPORT.data) @[Core.scala 34:23]
+    node _rs2_data_T = eq(rs2_addr, UInt<32>("h0")) @[Core.scala 35:33]
+    node rs2_data = mux(_rs2_data_T, UInt<32>("h0"), regfile.rs2_data_MPORT.data) @[Core.scala 35:23]
+    node _T = asUInt(reset) @[Core.scala 39:11]
+    node _T_1 = eq(_T, UInt<1>("h0")) @[Core.scala 39:11]
+    node _T_2 = asUInt(reset) @[Core.scala 41:11]
+    node _T_3 = eq(_T_2, UInt<1>("h0")) @[Core.scala 41:11]
+    node _T_4 = asUInt(reset) @[Core.scala 42:11]
+    node _T_5 = eq(_T_4, UInt<1>("h0")) @[Core.scala 42:11]
+    node _T_6 = asUInt(reset) @[Core.scala 43:11]
+    node _T_7 = eq(_T_6, UInt<1>("h0")) @[Core.scala 43:11]
+    node _T_8 = asUInt(reset) @[Core.scala 46:11]
+    node _T_9 = eq(_T_8, UInt<1>("h0")) @[Core.scala 46:11]
     io_imem_addr <= pc_reg @[Core.scala 22:18]
     io_exit <= _io_exit_T @[Core.scala 26:13]
+    regfile.rs1_data_MPORT.addr <= rs1_addr @[Core.scala 34:78]
+    regfile.rs1_data_MPORT.en <= UInt<1>("h1") @[Core.scala 34:78]
+    regfile.rs1_data_MPORT.clk <= clock @[Core.scala 34:78]
+    regfile.rs2_data_MPORT.addr <= rs2_addr @[Core.scala 35:78]
+    regfile.rs2_data_MPORT.en <= UInt<1>("h1") @[Core.scala 35:78]
+    regfile.rs2_data_MPORT.clk <= clock @[Core.scala 35:78]
     pc_reg <= mux(reset, UInt<32>("h0"), _pc_reg_T_1) @[Core.scala 18:{25,25} 19:12]
-    printf(clock, and(and(UInt<1>("h1"), _T_1), UInt<1>("h1")), "pc_reg: 0x%x--->inst: 0x%x\n", pc_reg, io_imem_inst) : printf @[Core.scala 28:11]
+    printf(clock, and(and(UInt<1>("h1"), _T_1), UInt<1>("h1")), "pc_reg: 0x%x--->inst: 0x%x\n", pc_reg, io_imem_inst) : printf @[Core.scala 39:11]
+    printf(clock, and(and(UInt<1>("h1"), _T_3), UInt<1>("h1")), "rs1_addr: 0x%x--->rs1_data: 0x%x\n", rs1_addr, rs1_data) : printf_1 @[Core.scala 41:11]
+    printf(clock, and(and(UInt<1>("h1"), _T_5), UInt<1>("h1")), "rs2_addr: 0x%x--->rs2_data: 0x%x\n", rs2_addr, rs2_data) : printf_2 @[Core.scala 42:11]
+    printf(clock, and(and(UInt<1>("h1"), _T_7), UInt<1>("h1")), "wb_addr: 0x%x\n", wb_addr) : printf_3 @[Core.scala 43:11]
+    printf(clock, and(and(UInt<1>("h1"), _T_9), UInt<1>("h1")), "------------------------\n") : printf_4 @[Core.scala 46:11]
 
   module Memory :
     input clock : Clock

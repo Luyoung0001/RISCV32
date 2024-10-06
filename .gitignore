@@ -3,6 +3,8 @@
 /.metals/**
 /.scala-build/**
 /project/**
+/.bsp/**
+/.vscode/**
 
 # 忽略 .scalafmt.conf 文件
 .scalafmt.conf
